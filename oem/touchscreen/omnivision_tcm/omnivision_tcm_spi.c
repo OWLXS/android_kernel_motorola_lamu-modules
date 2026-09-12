@@ -732,9 +732,15 @@ static int ovt_tcm_spi_probe(struct spi_device *spi)
 		 * around unbound is harmless; only the -ENODEV return below is
 		 * needed to make the SPI core release spi2.0 for the next
 		 * compatible driver in the fallback list (novatek, ilitek).
+		 *
+		 * hw_if.bdata is devm memory on spi->dev and dies with this
+		 * -ENODEV, so drop the platform_data first: a later deferred
+		 * probe of the leftover device then fails on the NULL check
+		 * instead of reading freed board data (gpio 0) forever.
 		 */
 		LOGE(&spi->dev,
 				"Platform driver failed to bind, releasing SPI device for fallback\n");
+		ovt_tcm_spi_device->dev.platform_data = NULL;
 		return -ENODEV;
 	}
 

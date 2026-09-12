@@ -5063,8 +5063,13 @@ err_sysfs_create_dir:
 	if (bdata->power_gpio >= 0)
 		ovt_tcm_set_gpio(tcm_hcd, bdata->power_gpio, false, 0, 0);
 
-	//if (bdata->reset_gpio >= 0)
-	//	ovt_tcm_set_gpio(tcm_hcd, bdata->reset_gpio, false, 0, 0);
+	/*
+	 * The reset line is shared with the other touch vendors in this
+	 * node's compatible fallback; holding it after a failed sensor
+	 * detection makes their gpio_request() fail.
+	 */
+	if (bdata->reset_gpio >= 0)
+		ovt_tcm_set_gpio(tcm_hcd, bdata->reset_gpio, false, 0, 0);
 
 err_config_gpio:
 	ovt_tcm_enable_regulator(tcm_hcd, false);
@@ -5241,19 +5246,30 @@ static int __init ovt_tcm_module_init(void)
 {
 	int retval;
 
-	retval = ovt_tcm_bus_init();
+	/*
+	 * The platform driver must exist before the bus driver: spi2.0 is
+	 * already present, so spi_register_driver() runs ovt_tcm_spi_probe()
+	 * synchronously, and its platform_device_add() only binds (and thus
+	 * detects the sensor) if ovt_tcm_driver is registered by then. With
+	 * the bus first, dev.driver was always NULL at that point and the
+	 * probe released the SPI device even on real Omnivision panels.
+	 */
+	retval = platform_driver_register(&ovt_tcm_driver);
 	if (retval < 0)
 		return retval;
 
-	return platform_driver_register(&ovt_tcm_driver);
+	retval = ovt_tcm_bus_init();
+	if (retval < 0)
+		platform_driver_unregister(&ovt_tcm_driver);
+
+	return retval;
 }
 
 static void __exit ovt_tcm_module_exit(void)
 {
 	testing_module_exit();
-	platform_driver_unregister(&ovt_tcm_driver);
-
 	ovt_tcm_bus_exit();
+	platform_driver_unregister(&ovt_tcm_driver);
 
 	return;
 }
