@@ -4405,19 +4405,32 @@ transparent_hugepage=never";
 		operating-points-v2 = <&opp_table_mm>;
 		mmdvfs-dvfsrc-vcore-supply = <&dvfsrc_vcore>;
 		vdec-set-bw-in-min-freq = <1>;
-		throughput-op-rate-thresh = <120>;
+		/*
+		 * Below this op rate the driver bursts the clock per frame: target
+		 * OPP at frame begin, min OPP at frame end, each step a vcore ramp
+		 * through DVFSRC. A 1440p60 frame takes ~13 ms of its 16.7 ms budget
+		 * at 457 MHz, so with the two ramps it no longer fits and playback
+		 * falls to ~20 fps. 60 fps streams now hold their target OPP for the
+		 * whole stream; 30 fps content keeps bursting.
+		 */
+		throughput-op-rate-thresh = <60>;
 		throughput-min = <228000000>;
 		throughput-normal-max = <312000000>;
+		/*
+		 * Default op rate when the app sets none. The 1440p column is 60 for
+		 * the codecs media_codecs_c2.xml rates at 3840x2160@30, the same pixel
+		 * rate; at 30 the DVFS target lands on 312 MHz, too low for 60 fps.
+		 */
 		max-op-rate-table =
 			<877088845 921600 60 2228224 60 3686400 1>, /* MPEG4 */
 			<826757197 921600 60 2228224 60 3686400 1>, /* MPEG1 */
 			<843534413 921600 60 2228224 60 3686400 1>, /* MPEG2 */
 			<859189832 921600 60 2228224 60 3686400 1>, /* H.263 */
-			<875967048 921600 60 2228224 60 3686400 30>, /* H.264 */
-			<826496577 921600 60 2228224 60 3686400 30>, /* H.264 */
-			<1129727304 921600 60 2228224 60 3686400 30>, /* HEVC */
-			<892744264 921600 60 2228224 60 3686400 30>, /* H.265 */
-			<809062486 921600 60 2228224 60 3686400 30>; /* VP9 */
+			<875967048 921600 60 2228224 60 3686400 60>, /* H.264 */
+			<826496577 921600 60 2228224 60 3686400 60>, /* H.264 */
+			<1129727304 921600 60 2228224 60 3686400 60>, /* HEVC */
+			<892744264 921600 60 2228224 60 3686400 60>, /* H.265 */
+			<809062486 921600 60 2228224 60 3686400 60>; /* VP9 */
 		throughput-table =
 			<877088845 0 642 642>, /* MPEG4 */
 			<826757197 0 597 597>, /* MPEG1 */
