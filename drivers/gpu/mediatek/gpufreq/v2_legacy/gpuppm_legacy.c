@@ -83,6 +83,9 @@ static struct gpuppm_limit_info g_gpu_limit_table[] = {
 	LIMITOP(LIMIT_FIXCMD, "FIXCMD", GPUPPM_PRIO_4,
 		GPUPPM_DEFAULT_IDX, LIMIT_ENABLE,
 		GPUPPM_DEFAULT_IDX, LIMIT_ENABLE),
+	LIMITOP(LIMIT_AXION_USER, "AXION_USER", GPUPPM_PRIO_6,
+		GPUPPM_DEFAULT_IDX, LIMIT_DISABLE,
+		GPUPPM_DEFAULT_IDX, LIMIT_DISABLE),
 };
 
 static struct gpuppm_limit_info g_limit_table[] = {
@@ -122,6 +125,9 @@ static struct gpuppm_limit_info g_limit_table[] = {
 	LIMITOP(LIMIT_FIXCMD, "FIXCMD", GPUPPM_PRIO_2,
 		GPUPPM_DEFAULT_IDX, LIMIT_ENABLE,
 		GPUPPM_DEFAULT_IDX, LIMIT_ENABLE),
+	LIMITOP(LIMIT_AXION_USER, "AXION_USER", GPUPPM_PRIO_6,
+		GPUPPM_DEFAULT_IDX, LIMIT_DISABLE,
+		GPUPPM_DEFAULT_IDX, LIMIT_DISABLE),
 };
 
 static struct gpuppm_platform_fp platform_ap_fp = {
@@ -177,6 +183,9 @@ static struct gpuppm_limit_info g_stack_limit_table[] = {
 	LIMITOP(LIMIT_FIXCMD, "FIXCMD", GPUPPM_PRIO_4,
 		GPUPPM_DEFAULT_IDX, LIMIT_ENABLE,
 		GPUPPM_DEFAULT_IDX, LIMIT_ENABLE),
+	LIMITOP(LIMIT_AXION_USER, "AXION_USER", GPUPPM_PRIO_6,
+		GPUPPM_DEFAULT_IDX, LIMIT_DISABLE,
+		GPUPPM_DEFAULT_IDX, LIMIT_DISABLE),
 };
 
 /**
@@ -407,6 +416,11 @@ static int __gpuppm_convert_limit_to_idx(enum gpufreq_target target, enum gpuppm
 		break;
 	case LIMIT_FIXCMD:
 		/* limit info: OPP index */
+		*ceiling_idx = ceiling_info;
+		*floor_idx = floor_info;
+		break;
+	case LIMIT_AXION_USER:
+		/* limit info: OPP index (AxionOS Kernel Manager GPU range) */
 		*ceiling_idx = ceiling_info;
 		*floor_idx = floor_info;
 		break;

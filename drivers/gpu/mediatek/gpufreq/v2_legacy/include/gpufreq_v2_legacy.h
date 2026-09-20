@@ -166,6 +166,14 @@ enum gpuppm_limiter {
 	LIMIT_APIBOOST,
 	LIMIT_POWERHAL,
 	LIMIT_FIXCMD,
+	/*
+	 * AxionOS: user-facing GPU frequency range from the Kernel Manager UI.
+	 * Priority 6 (below SEGMENT/DEBUG/THERMAL, above SRAMRC/BATT/POWERHAL)
+	 * so real thermal/battery protection always wins a ceiling dispute
+	 * against a user-picked range, per __gpuppm_sort_limit()'s "most
+	 * restrictive numeric value wins" rule.
+	 */
+	LIMIT_AXION_USER,
 	LIMIT_NUM,
 };
 

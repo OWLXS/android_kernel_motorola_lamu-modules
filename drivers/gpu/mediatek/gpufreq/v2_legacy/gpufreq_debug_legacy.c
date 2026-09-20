@@ -22,6 +22,7 @@
 #include <linux/uaccess.h>
 
 #include <gpufreq_v2_legacy.h>
+#include <gpuppm_legacy.h>
 #include <gpufreq_mssv.h>
 #include <gpufreq_debug_legacy.h>
 #include <gpufreq_history.h>
@@ -1012,6 +1013,70 @@ done:
 #endif /* GPUFREQ_MSSV_TEST_MODE */
 
 /* PROCFS : initialization */
+static int axion_gpu_range_proc_show(struct seq_file *m, void *v)
+{
+	const struct gpuppm_limit_info *table = NULL;
+	const struct gpuppm_limit_info *info = NULL;
+
+	mutex_lock(&gpufreq_debug_lock);
+
+	table = gpufreq_get_limit_table(TARGET_DEFAULT);
+	if (!table) {
+		GPUFREQ_LOGE("fail to get limit table (ENOENT)");
+		mutex_unlock(&gpufreq_debug_lock);
+		return GPUFREQ_ENOENT;
+	}
+	info = &table[LIMIT_AXION_USER];
+
+	if (info->c_enable == LIMIT_ENABLE || info->f_enable == LIMIT_ENABLE)
+		seq_printf(m, "[AXION-GPU-RANGE] ceiling: %d, floor: %d\n",
+			info->ceiling, info->floor);
+	else
+		seq_puts(m, "[AXION-GPU-RANGE] disabled\n");
+
+	mutex_unlock(&gpufreq_debug_lock);
+
+	return GPUFREQ_SUCCESS;
+}
+
+static ssize_t axion_gpu_range_proc_write(struct file *file,
+		const char __user *buffer, size_t count, loff_t *data)
+{
+	int ret = GPUFREQ_SUCCESS;
+	char buf[64];
+	unsigned int len = 0;
+	int ceiling = 0, floor = 0;
+
+	len = (count < (sizeof(buf) - 1)) ? count : (sizeof(buf) - 1);
+	if (copy_from_user(buf, buffer, len)) {
+		ret = GPUFREQ_EINVAL;
+		goto done;
+	}
+	buf[len] = '\0';
+
+	mutex_lock(&gpufreq_debug_lock);
+
+	if (sscanf(buf, "%d %d", &ceiling, &floor) == 2) {
+		if (ceiling == -1 && floor == -1) {
+			ret = gpufreq_switch_limit(TARGET_DEFAULT, LIMIT_AXION_USER,
+				LIMIT_DISABLE, LIMIT_DISABLE);
+		} else {
+			ret = gpufreq_switch_limit(TARGET_DEFAULT, LIMIT_AXION_USER,
+				LIMIT_ENABLE, LIMIT_ENABLE);
+			if (!ret)
+				ret = gpufreq_set_limit(TARGET_DEFAULT, LIMIT_AXION_USER,
+					ceiling, floor);
+		}
+		if (ret)
+			GPUFREQ_LOGE("fail to set AxionOS GPU range (%d)", ret);
+	}
+
+	mutex_unlock(&gpufreq_debug_lock);
+
+done:
+	return (ret < 0) ? ret : count;
+}
+
 PROC_FOPS_RO(gpufreq_status);
 PROC_FOPS_RO(gpu_working_opp_table);
 PROC_FOPS_RO(gpu_signed_opp_table);
@@ -1020,6 +1085,7 @@ PROC_FOPS_RO(stack_signed_opp_table);
 PROC_FOPS_RO(asensor_info);
 PROC_FOPS_RW(limit_table);
 PROC_FOPS_RW(fix_target_opp_index);
+PROC_FOPS_RW(axion_gpu_range);
 PROC_FOPS_RW(fix_custom_freq_volt);
 PROC_FOPS_RW(opp_stress_test);
 #if GPUFREQ_MSSV_TEST_MODE
@@ -1044,6 +1110,7 @@ static int gpufreq_create_procfs(void)
 		//PROC_ENTRY(asensor_info),
 		PROC_ENTRY(limit_table),
 		PROC_ENTRY(fix_target_opp_index),
+		PROC_ENTRY(axion_gpu_range),
 		//PROC_ENTRY(fix_custom_freq_volt),
 		PROC_ENTRY(opp_stress_test),
 #if GPUFREQ_MSSV_TEST_MODE
