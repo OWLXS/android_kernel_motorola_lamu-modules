@@ -778,9 +778,11 @@ static void ilitek_spi_remove(struct spi_device *spi)
 }
 
 static struct spi_device_id tp_spi_id[] = {
+	{"ilitek", 0},
 	{TDDI_DEV_ID, 0},
 	{},
 };
+MODULE_DEVICE_TABLE(spi, tp_spi_id);
 
 int ili_interface_dev_init(struct ilitek_hwif_info *hwif)
 {

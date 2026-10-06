@@ -709,6 +709,35 @@ static int ovt_tcm_spi_probe(struct spi_device *spi)
 		return retval;
 	}
 
+	/*
+	 * platform_device_add() only reports failure to register the
+	 * platform device itself -- it does not propagate a probe failure
+	 * from the bound platform_driver (ovt_tcm_probe(), e.g. when sensor
+	 * detection fails). Without this check we always return 0 here,
+	 * which makes the SPI core treat this device as permanently claimed
+	 * even when no touch controller actually responded. That blocks the
+	 * other vendor drivers listed in this node's compatible fallback
+	 * (novatek, ilitek) from ever getting a chance to probe the same
+	 * spi device on units that don't use this chip.
+	 */
+	if (!ovt_tcm_spi_device->dev.driver) {
+		/*
+		 * Deliberately NOT calling platform_device_unregister() here:
+		 * doing so from inside this SPI probe -- itself invoked from
+		 * inside device core's own probe/bind path for spi2.0 --
+		 * reproducibly hung the device on boot (silent reset, no
+		 * panic/oops in expdb or mrdump, consistent with a lock-order
+		 * problem against the MTK SPI controller driver rather than a
+		 * detected kernel exception). Leaving the platform_device
+		 * around unbound is harmless; only the -ENODEV return below is
+		 * needed to make the SPI core release spi2.0 for the next
+		 * compatible driver in the fallback list (novatek, ilitek).
+		 */
+		LOGE(&spi->dev,
+				"Platform driver failed to bind, releasing SPI device for fallback\n");
+		return -ENODEV;
+	}
+
 	return 0;
 }
 
