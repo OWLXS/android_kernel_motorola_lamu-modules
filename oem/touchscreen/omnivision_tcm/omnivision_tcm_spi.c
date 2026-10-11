@@ -721,6 +721,12 @@ static int ovt_tcm_spi_probe(struct spi_device *spi)
 	 * spi device on units that don't use this chip.
 	 */
 	if (!ovt_tcm_spi_device->dev.driver) {
+		if (ovt_tcm_probe_last_result == -EPROBE_DEFER) {
+			LOGE(&spi->dev,
+					"Platform driver probe deferred, propagating -EPROBE_DEFER\n");
+			return -EPROBE_DEFER;
+		}
+
 		/*
 		 * Deliberately NOT calling platform_device_unregister() here:
 		 * doing so from inside this SPI probe -- itself invoked from

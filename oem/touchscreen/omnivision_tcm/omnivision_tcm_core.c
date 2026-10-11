@@ -4670,7 +4670,51 @@ static void touch_info_node_init(void)
 	}
 }
 
+/*
+ * This platform device can legitimately be probed more than once: the
+ * SPI-level fallback (omnivision_tcm_spi.c) deliberately leaves it
+ * registered even after a clean sensor-detection failure (to avoid a
+ * platform_device_unregister() lock-order hang seen on this board), and
+ * the kernel's deferred-probe mechanism can independently re-invoke this
+ * probe much later in boot -- observed here at ~459s uptime via
+ * deferred_probe_work_func, well after early boot. On a unit that has no
+ * Omnivision sensor, that late re-entry crashes (invalid
+ * board_data->bus_reg_name dereference) instead of failing cleanly like
+ * the first attempt did, taking the whole boot down with it. Once we get
+ * a definitive answer -- success, or any failure other than a real
+ * -EPROBE_DEFER -- never enter the real probe again; only an actual
+ * EPROBE_DEFER (e.g. a regulator not registered yet) is allowed its
+ * normal retry.
+ */
+static bool ovt_tcm_probe_done;
+/*
+ * Last return value from ovt_tcm_probe_real(), read by
+ * omnivision_tcm_spi.c right after platform_device_add() to tell a real
+ * -EPROBE_DEFER (should be propagated so the SPI core retries this same
+ * probe later) apart from every other failure (should fall through to
+ * -ENODEV so the next compatible driver in the devicetree fallback list
+ * gets a turn instead). Declared non-static, exposed via
+ * omnivision_tcm_core.h.
+ */
+int ovt_tcm_probe_last_result = -ENODEV;
+static int ovt_tcm_probe_real(struct platform_device *pdev);
+
 static int ovt_tcm_probe(struct platform_device *pdev)
+{
+	int retval;
+
+	if (ovt_tcm_probe_done)
+		return -ENODEV;
+
+	retval = ovt_tcm_probe_real(pdev);
+	ovt_tcm_probe_last_result = retval;
+	if (retval != -EPROBE_DEFER)
+		ovt_tcm_probe_done = true;
+
+	return retval;
+}
+
+static int ovt_tcm_probe_real(struct platform_device *pdev)
 {
 	int retval;
 	int idx;
