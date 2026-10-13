@@ -950,9 +950,15 @@ static int do_algorithm(struct mtk_charger *info)
 			chg_alg_set_current_limit(alg, &info->setting);
 			ret = chg_alg_is_algo_ready(alg);
 
-			chr_err("%s %s ret:%s, %d\n", __func__,
-				dev_name(&alg->dev),
-				chg_alg_state_to_str(ret), ret);
+			/* ALG_INIT_FAIL is the expected state whenever no PE5
+			 * TA is attached (unplugged, plain USB, or charging
+			 * held off by charging-control) -- logging it every
+			 * arbitration cycle is pure spam.
+			 */
+			if (ret != (int) ALG_INIT_FAIL)
+				chr_err("%s %s ret:%s, %d\n", __func__,
+					dev_name(&alg->dev),
+					chg_alg_state_to_str(ret), ret);
 
 			if (ret == (int) ALG_INIT_FAIL || ret == (int) ALG_TA_NOT_SUPPORT) {
 				/* try next algorithm */

@@ -1366,7 +1366,7 @@ static int bs_psy_get_property(struct power_supply *psy,
 			ret = power_supply_get_property(bs_data->chg_psy,
 				POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE, val);
 			if (ret < 0) {
-				pr_err("get CV property fail\n");
+				pr_debug("get CV property fail\n");
 				ret = 4350;
 			}
 		}

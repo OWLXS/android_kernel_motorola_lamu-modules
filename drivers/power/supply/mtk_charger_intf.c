@@ -348,7 +348,7 @@ int get_ibat(struct mtk_charger *info)
 		return -EINVAL;
 	ret = charger_dev_get_ibat(info->chg1_dev, &ibat);
 	if (ret < 0)
-		chr_err("%s: get ibat failed: %d\n", __func__, ret);
+		chr_debug("%s: get ibat failed: %d\n", __func__, ret);
 
 	return ibat / 1000;
 }
@@ -362,7 +362,7 @@ int get_ibus(struct mtk_charger *info)
 		return -EINVAL;
 	ret = charger_dev_get_ibus(info->chg1_dev, &ibus);
 	if (ret < 0)
-		chr_err("%s: get ibus failed: %d\n", __func__, ret);
+		chr_debug("%s: get ibus failed: %d\n", __func__, ret);
 
 	return ibus / 1000;
 }
