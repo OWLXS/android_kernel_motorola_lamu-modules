@@ -15,6 +15,13 @@ if [ -z "${KERNEL_MODULES_DIR}" ] || [ ! -f "${KERNEL_MODULES_DIR}/build.sh" ]; 
 fi
 KERNEL_MODULES_NAME="$(basename "${KERNEL_MODULES_DIR}")"
 
+# Stamp builds with the real build date: kleaf's workspace_status_stamp.py
+# reads SOURCE_DATE_EPOCH from the client shell env. NOTE: this only works
+# because .repo/local_manifests/owlxs.xml parses cleanly -- a malformed
+# local manifest makes `repo manifest -r` fail, the stamp map comes out
+# empty and the banner falls back to the 1970 epoch again.
+export SOURCE_DATE_EPOCH="$(date +%s)"
+
 # _setup_env.sh prepends ROOT_DIR twice if out/ doesn't exist yet
 export OUT_DIR="${ROOT_DIR}/out"
 mkdir -p "${OUT_DIR}"
